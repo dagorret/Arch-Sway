@@ -34,3 +34,14 @@ Si querés automatizar todo el proceso (detectar host o VM, instalar GNOME Boxes
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/dagorret/Arch-Sway/main/install_all.sh)
+
+### Requsitos
+
+| Recurso        | Mínimo                  | Recomendado |
+| -------------- | ----------------------- | ----------- |
+| CPU            | 2 núcleos               | 4 núcleos   |
+| RAM            | 3 GB                    | 4 GB        |
+| Disco virtual  | 20 GB                   | 30 GB       |
+| Virtualización | VT-x / AMD-V activado   |             |
+| Aceleración 3D | Activada en GNOME Boxes |             |
+
