@@ -15,7 +15,9 @@ mkdir -p "$ISO_DIR" "$VM_DIR"
 echo ">> Descargando ISO de Arch Linux (si no existe)..."
 if [[ ! -f "$ISO_PATH" ]]; then
   # Elegimos un mirror confiable
-  curl -L -o "$ISO_PATH" https://geo.mirror.pkgbuild.com/iso/latest/archlinux-x86_64.iso
+  #curl -L -o "$ISO_PATH" https://geo.mirror.pkgbuild.com/iso/latest/archlinux-x86_64.iso
+  curl -L -o "$ISO_DIR/sha256sums.txt" https://geo.mirror.pkgbuild.com/iso/latest/sha256sums.txt
+  (cd "$ISO_DIR" && sha256sum -c --ignore-missing sha256sums.txt)
 fi
 
 echo ">> Creando disco qcow2 de ${DISK_SIZE_GB}G en: $DISK_PATH"
