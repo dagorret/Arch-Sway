@@ -34,7 +34,7 @@ Si querés automatizar todo el proceso (detectar host o VM, instalar GNOME Boxes
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/dagorret/Arch-Sway/main/install_all.sh)
-``
+```
 
 ### Requsitos
 
