@@ -113,21 +113,70 @@ sway-start
 
 El script incluye fallback automático (`WLR_RENDERER_ALLOW_SOFTWARE=1`) si la VM no dispone de aceleración 3D.
 
-### Borrar paso 2
 
-# 1) Apagar la VM si quedó en ejecución (ignora error si no existe)
+## ♻️ Revertir la creación de la máquina virtual (Undo Paso 2)
+
+Si necesitás eliminar la VM creada por el **Paso 2**, podés hacerlo de dos formas:  
+manualmente desde la terminal o usando el script `2_undo_vm_arch.sh`.
+
+---
+
+### 🔧 Opción 1 — Comandos directos (modo seguro)
+
+Ejecutá estos comandos en tu **Ubuntu host**:
+
+```bash
 virsh --connect qemu:///system destroy arch-sway 2>/dev/null || true
-
-# 2) Eliminar la definición de la VM (incluye NVRAM si fue UEFI)
 virsh --connect qemu:///system undefine arch-sway --nvram 2>/dev/null \
-  || virsh --connect qemu:///system undefine arch-sway 2>/dev/null \
-  || true
-
-# 3) Borrar el disco qcow2 creado por el script
+  || virsh --connect qemu:///system undefine arch-sway 2>/dev/null || true
 sudo rm -f /var/lib/libvirt/images/arch-sway.qcow2
-
-# 4) Borrar la ISO COPIADA al storage de libvirt (tu ISO en ~/ISOs no se toca)
 sudo rm -f /var/lib/libvirt/images/archlinux-x86_64.iso
+echo "✅ Entorno revertido: VM y archivos eliminados."
+```
+
+🧩 **Qué hace:**
+- Apaga la VM `arch-sway` si está corriendo.  
+- Elimina su definición del gestor libvirt.  
+- Borra el disco virtual (`arch-sway.qcow2`).  
+- Elimina la copia de la ISO en `/var/lib/libvirt/images/`.  
+> La ISO original en `~/ISOs/` no se toca.
+
+---
+
+### ⚙️ Opción 2 — Usando el script `2_undo_vm_arch.sh`
+
+Si ya tenés el script de reversión en tu repositorio:
+
+```bash
+chmod +x 2_undo_vm_arch.sh
+./2_undo_vm_arch.sh
+```
+
+🔸 El script incluye validaciones, mensajes informativos y puede usarse tanto en entornos `system` como `session`.
+
+---
+
+### 💡 Nota para VMs creadas en modo *session* (Boxes)
+
+Si la VM fue creada con el nuevo **script 2** (por defecto en modo `session`),  
+cambiá las conexiones de libvirt a `qemu:///session` en los comandos:
+
+```bash
+virsh --connect qemu:///session destroy arch-sway 2>/dev/null || true
+virsh --connect qemu:///session undefine arch-sway 2>/dev/null || true
+```
+
+Esto elimina la VM directamente desde el entorno de usuario  
+(el mismo que usa **GNOME Boxes**) sin requerir privilegios de root.
+
+---
+
+✅ **Resultado esperado:**
+```
+Entorno revertido: VM y archivos eliminados.
+```
+
+Tu sistema quedará exactamente como antes del Paso 2.
 
 
 
