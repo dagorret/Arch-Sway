@@ -33,7 +33,7 @@ Podés ejecutar cada etapa directamente desde el terminal usando `curl | bash`.
 Si querés automatizar todo el proceso (detectar host o VM, instalar GNOME Boxes, crear VM y luego ejecutar los scripts dentro), podés usar:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/dagorret/Arch-Sway/main/install_all.sh)
+bash <(curl -fsSL https:/ /raw.githubusercontent.com/dagorret/Arch-Sway/main/install_all.sh)
 ```
 
 ### Requsitos
@@ -45,4 +45,12 @@ bash <(curl -fsSL https://raw.githubusercontent.com/dagorret/Arch-Sway/main/inst
 | Disco virtual  | 20 GB                   | 30 GB       |
 | Virtualización | VT-x / AMD-V activado   |             |
 | Aceleración 3D | Activada en GNOME Boxes |             |
+
+### 🪶 Iniciar entorno gráfico
+
+Una vez instalado y configurado, iniciar sesión en Arch y ejecutar:
+
+```
+sway-start
+``` 
 
