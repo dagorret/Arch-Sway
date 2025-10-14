@@ -179,4 +179,37 @@ Entorno revertido: VM y archivos eliminados.
 Tu sistema quedará exactamente como antes del Paso 2.
 
 
+### Borrar VM “huérfana” en qemu:///session y el disco
 
+```
+# Ver qué hay en session
+virsh --connect qemu:///session list --all
+
+# Apagar si estuviera corriendo (no suele estar)
+virsh --connect qemu:///session destroy arch-sway 2>/dev/null || true
+
+# Eliminar la definición (y NVRAM si existiera)
+virsh --connect qemu:///session undefine arch-sway --nvram 2>/dev/null \
+  || virsh --connect qemu:///session undefine arch-sway 2>/dev/null || true
+
+# Borrar el disco que quedó ocupado
+rm -f ~/.local/share/libvirt/images/arch-sway.qcow2
+```
+Y yapa
+
+```
+virsh --connect qemu:///system list --all
+```
+
+### Chequea el paquete, que exista
+
+```
+sudo apt update
+sudo apt install -y ovmf
+```
+
+Volvé a crear la VM
+
+```
+LIBVIRT_SCOPE=session bash 2_crear_vm_arch.sh
+```
