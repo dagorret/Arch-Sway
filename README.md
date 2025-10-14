@@ -113,4 +113,21 @@ sway-start
 
 El script incluye fallback automático (`WLR_RENDERER_ALLOW_SOFTWARE=1`) si la VM no dispone de aceleración 3D.
 
+### Borrar paso 2
+
+# 1) Apagar la VM si quedó en ejecución (ignora error si no existe)
+virsh --connect qemu:///system destroy arch-sway 2>/dev/null || true
+
+# 2) Eliminar la definición de la VM (incluye NVRAM si fue UEFI)
+virsh --connect qemu:///system undefine arch-sway --nvram 2>/dev/null \
+  || virsh --connect qemu:///system undefine arch-sway 2>/dev/null \
+  || true
+
+# 3) Borrar el disco qcow2 creado por el script
+sudo rm -f /var/lib/libvirt/images/arch-sway.qcow2
+
+# 4) Borrar la ISO COPIADA al storage de libvirt (tu ISO en ~/ISOs no se toca)
+sudo rm -f /var/lib/libvirt/images/archlinux-x86_64.iso
+
+
 
