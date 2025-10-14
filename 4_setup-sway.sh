@@ -3,16 +3,14 @@ set -euo pipefail
 
 ### Arch + Sway preset (Firefox, Thunar, Mousepad, Emacs Wayland, MarkText, Pandoc + TeX Live full-like,
 ### estética completa, utilidades de confort y entorno de desarrollo)
-
-### Requisitos: usuario con sudo y conexión a Internet.
-### Consejo: ejecutá primero `sudo pacman -Syu` si hace mucho no actualizás.
+### Este script es para correr en Arch ya instalado (después del primer reboot).
 
 # ---------- Helpers ----------
 msg() { printf "\n\033[1;32m==>\033[0m %s\n" "$*"; }
 warn() { printf "\n\033[1;33m!!\033[0m %s\n" "$*"; }
 err() { printf "\n\033[1;31mEE\033[0m %s\n" "$*"; exit 1; }
 
-[[ $EUID -eq 0 ]] && err "Ejecutá este script como USUARIO NORMAL (no como root). Usa sudo cuando se pida."
+[[ $EUID -eq 0 ]] && err "Ejecutá este script como USUARIO NORMAL (no root). Usa sudo cuando se pida."
 
 # ---------- Actualización base ----------
 msg "Actualizando sistema..."
@@ -32,8 +30,9 @@ sudo pacman -S --needed --noconfirm \
 # Audio moderno (PipeWire)
 msg "Instalando PipeWire (audio) y habilitando servicios..."
 sudo pacman -S --needed --noconfirm pipewire pipewire-alsa pipewire-pulse pipewire-jack wireplumber
+# Servicios de usuario (pueden fallar si no hay session activa de systemd --user; no es grave)
 systemctl --user enable --now pipewire.service pipewire-pulse.service wireplumber.service || true
-# Servicios de sistema que sí requieren root
+# Servicios de sistema
 sudo systemctl enable --now NetworkManager
 sudo systemctl enable --now bluetooth
 
@@ -52,11 +51,11 @@ else
   sudo pacman -S --needed --noconfirm emacs
 fi
 
-# ---------- Fuentes y temas (estética completa) ----------
-msg "Instalando fuentes y temas..."
+# ---------- Fuentes, temas y esquemas GTK (estética robusta) ----------
+msg "Instalando fuentes, temas e iconos..."
 sudo pacman -S --needed --noconfirm \
   ttf-dejavu noto-fonts noto-fonts-emoji noto-fonts-cjk \
-  arc-gtk-theme papirus-icon-theme
+  arc-gtk-theme papirus-icon-theme gsettings-desktop-schemas libappindicator-gtk3
 
 # ---------- Pandoc + TeX Live (conjunto amplio, equivalente a 'full') ----------
 msg "Instalando Pandoc + TeX Live amplio (full-like)..."
@@ -65,30 +64,38 @@ sudo pacman -S --needed --noconfirm pandoc \
   texlive-latexextra texlive-pictures texlive-science texlive-bibtexextra \
   texlive-fontsextra ghostscript
 
+# ---------- Directorios de usuario (Documentos, Descargas, etc.) ----------
+msg "Creando carpetas estándar de usuario..."
+sudo pacman -S --needed --noconfirm xdg-user-dirs
+xdg-user-dirs-update
+
 # ---------- AUR helper (yay) para instalar MarkText ----------
 msg "Instalando yay (AUR helper) para MarkText..."
-WORKDIR="$(mktemp -d)"
-pushd "$WORKDIR" >/dev/null
-sudo pacman -S --needed --noconfirm --asdeps go
 if ! command -v yay &>/dev/null; then
+  WORKDIR="$(mktemp -d)"
+  pushd "$WORKDIR" >/dev/null
+  # Asegurar prerequisitos
+  sudo pacman -S --needed --noconfirm go git base-devel
   git clone https://aur.archlinux.org/yay.git
   pushd yay >/dev/null
   makepkg -si --noconfirm
   popd >/dev/null
+  popd >/dev/null
+  rm -rf "$WORKDIR" || true
+else
+  msg "yay ya está instalado."
 fi
-popd >/dev/null
-rm -rf "$WORKDIR" || true
 
 # MarkText (AUR). Alternativa: ghostwriter (repos oficiales)
 msg "Instalando MarkText desde AUR..."
-yay -S --noconfirm --needed marktext-bin || {
-  warn "Fallo la instalación de MarkText desde AUR. Instalando ghostwriter como alternativa."
+if ! yay -S --noconfirm --needed marktext-bin; then
+  warn "Falló la instalación de MarkText desde AUR. Instalando 'ghostwriter' como alternativa."
   sudo pacman -S --needed --noconfirm ghostwriter
-}
+fi
 
 # ---------- Configuración mínima de Sway / Waybar / Wofi / Mako ----------
 msg "Creando configuración mínima en ~/.config ..."
-mkdir -p ~/.config/sway ~/.config/waybar ~/.config/wofi ~/.config/mako
+mkdir -p ~/.config/sway ~/.config/waybar ~/.config/wofi ~/.config/mako ~/.config/gtk-3.0
 
 # Sway config básica con atajos comunes y tema
 cat > ~/.config/sway/config <<'SWAYCFG'
@@ -134,10 +141,11 @@ output * bg #2b2b2b solid_color
 # Cursor
 seat * hide_cursor 3000
 
-# GTK Theme (Arc) e iconos (Papirus)
+# GTK Theme (Arc) e iconos (Papirus) – por gsettings (puede no aplicar según entorno)
 exec_always {
   gsettings set org.gnome.desktop.interface gtk-theme 'Arc-Dark'
   gsettings set org.gnome.desktop.interface icon-theme 'Papirus'
+  gsettings set org.gnome.desktop.interface font-name 'Noto Sans 11'
 }
 
 # Notificaciones (mako)
@@ -183,6 +191,14 @@ border-color=#3c6eb4
 default-timeout=5000
 MAKOCFG
 
+# GTK-3 fallback (en caso de que gsettings no aplique)
+cat > ~/.config/gtk-3.0/settings.ini <<'GTKSET'
+[Settings]
+gtk-theme-name=Arc-Dark
+gtk-icon-theme-name=Papirus
+font-name=Noto Sans 11
+GTKSET
+
 # ---------- Lanzador con fallback automático (software si falla 3D) ----------
 sudo install -Dm755 /dev/stdin /usr/local/bin/sway-start <<'LAUNCHER'
 #!/usr/bin/env bash
@@ -191,5 +207,5 @@ exec sway || { echo "[sway-start] Reintentando con WLR_RENDERER_ALLOW_SOFTWARE=1
 LAUNCHER
 
 msg "Listo. Podés iniciar Sway ejecutando:  sway-start"
-msg "Sugerencia: instala 'xdg-user-dirs' y ejecuta 'xdg-user-dirs-update' si querés carpetas estándar (Documentos, etc.)."
-
+msg "Si no escuchás audio, probá: systemctl --user restart wireplumber pipewire pipewire-pulse"
+msg "Carpetas de usuario creadas. Si querés personalizarlas: xdg-user-dirs-update --force"
