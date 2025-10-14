@@ -44,6 +44,8 @@ mount "${EFI_PART}" /mnt/boot
 
 echo ">> Instalando base del sistema..."
 pacman -Sy --noconfirm
+pacman -Sy --noconfirm reflector
+reflector --country 'Argentina,Brazil,Chile' --age 48 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
 pacstrap -K /mnt base linux linux-firmware networkmanager vim sudo
 
 echo ">> Generando fstab..."
