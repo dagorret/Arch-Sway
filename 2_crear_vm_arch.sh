@@ -1,26 +1,40 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Crea una VM Arch Linux con libvirt/virt-install que GNOME Boxes detecta automáticamente.
-# Requiere que hayas corrido antes el script 1 (stack KVM/OVMF).
+# ==========================================================
+# Script: 2_crear_vm_arch.sh
+# Crea una VM Arch Linux con libvirt/virt-install
+# Detecta OVMF (UEFI), valida ISO con SHA256, y maneja permisos de acceso.
+# ==========================================================
 
 VM_NAME="${VM_NAME:-arch-sway}"
 ISO_DIR="${ISO_DIR:-$HOME/ISOs}"
-VM_DIR="${VM_DIR:-$HOME/VMs}"
 ISO_PATH="$ISO_DIR/archlinux-x86_64.iso"
 SHA_FILE="$ISO_DIR/sha256sums.txt"
-DISK_PATH="$VM_DIR/${VM_NAME}.qcow2"
+
+# Carpeta donde libvirt tiene acceso por defecto
+VM_STORAGE_DIR="/var/lib/libvirt/images"
+DISK_PATH="${VM_STORAGE_DIR}/${VM_NAME}.qcow2"
 
 DISK_SIZE_GB="${DISK_SIZE_GB:-20}"   # 20 GB dinámicos
 RAM_MB="${RAM_MB:-4096}"             # 4 GB RAM
 VCPUS="${VCPUS:-4}"                  # 4 vCPU
 
+# --- Helper functions ---
 msg() { printf "\n\033[1;32m==>\033[0m %s\n" "$*"; }
+warn() { printf "\n\033[1;33m!!\033[0m %s\n" "$*"; }
 err() { printf "\n\033[1;31mEE\033[0m %s\n" "$*"; exit 1; }
 
-mkdir -p "$ISO_DIR" "$VM_DIR"
+# --- Check dependencies ---
+for cmd in curl qemu-img virt-install; do
+  command -v "$cmd" >/dev/null || err "Falta el comando '$cmd'. Instalalo primero."
+done
 
-# --- Descargar ISO + checksums (desde mirror geo equivocado para ti por latencia) ---
+# --- Prepare directories ---
+sudo mkdir -p "$VM_STORAGE_DIR"
+mkdir -p "$ISO_DIR"
+
+# --- Descargar ISO + checksum ---
 ISO_URL="https://geo.mirror.pkgbuild.com/iso/latest/archlinux-x86_64.iso"
 SUMS_URL="https://geo.mirror.pkgbuild.com/iso/latest/sha256sums.txt"
 
@@ -35,18 +49,28 @@ curl -L --fail -o "$SHA_FILE" "$SUMS_URL"
 msg "Verificando checksum SHA256 de la ISO..."
 (
   cd "$ISO_DIR"
-  # Busca la línea de archlinux-x86_64.iso en sha256sums.txt y verifica
   if ! sha256sum -c --ignore-missing "sha256sums.txt"; then
-    err "El checksum SHA256 NO coincide. Borra la ISO y reintenta (posible descarga corrupta)."
+    err "Checksum SHA256 NO coincide. Borra la ISO y reintentá."
   fi
 )
 msg "Checksum OK."
 
+# --- Copiar ISO si libvirt no tiene acceso a HOME ---
+if [[ ! -r "$VM_STORAGE_DIR/$(basename "$ISO_PATH")" ]]; then
+  msg "Copiando ISO a ${VM_STORAGE_DIR} (accesible por libvirt)..."
+  sudo cp "$ISO_PATH" "$VM_STORAGE_DIR/"
+fi
+ISO_VM_PATH="${VM_STORAGE_DIR}/$(basename "$ISO_PATH")"
+
 # --- Crear disco qcow2 ---
 msg "Creando disco qcow2 ${DISK_SIZE_GB}G en: $DISK_PATH"
-qemu-img create -f qcow2 "$DISK_PATH" "${DISK_SIZE_GB}G"
+if [[ ! -f "$DISK_PATH" ]]; then
+  sudo qemu-img create -f qcow2 "$DISK_PATH" "${DISK_SIZE_GB}G"
+else
+  warn "El disco ya existe, se usará el existente."
+fi
 
-# --- UEFI (OVMF) si está disponible ---
+# --- Detectar OVMF (UEFI) ---
 OVMF_CODE="/usr/share/OVMF/OVMF_CODE.fd"
 OVMF_VARS="/usr/share/OVMF/OVMF_VARS.fd"
 BOOT_OPTS=()
@@ -54,7 +78,8 @@ if [[ -r "$OVMF_CODE" && -r "$OVMF_VARS" ]]; then
   BOOT_OPTS=( --boot loader="$OVMF_CODE",loader.readonly=yes,loader.type=pflash,nvram.template="$OVMF_VARS" )
   msg "Usando UEFI (OVMF)."
 else
-  msg "OVMF no encontrado; se usará BIOS legado."
+  warn "OVMF no encontrado. Instalá con: sudo apt install ovmf"
+  warn "Se usará BIOS legado."
 fi
 
 # --- Crear VM ---
@@ -63,7 +88,7 @@ virt-install \
   --name "$VM_NAME" \
   --memory "$RAM_MB" --vcpus "$VCPUS" --cpu host-passthrough \
   --disk path="$DISK_PATH",format=qcow2,bus=virtio \
-  --cdrom "$ISO_PATH" \
+  --cdrom "$ISO_VM_PATH" \
   --network network=default,model=virtio \
   --graphics spice,gl=on \
   --video virtio \
@@ -71,6 +96,14 @@ virt-install \
   --rng /dev/urandom \
   --os-variant archlinux \
   "${BOOT_OPTS[@]}" \
-  --noautoconsole
+  --noautoconsole || {
+    err "Error al crear la VM. Revisá los permisos de libvirt o la ISO."
+  }
 
-msg "VM creada. Abrila desde GNOME Boxes como '${VM_NAME}'. Booteá desde la ISO y corré el script 3 dentro del Live."
+msg "✅ VM creada correctamente."
+msg "Abrí GNOME Boxes → Iniciá la VM 'arch-sway' → Boot desde la ISO de Arch."
+msg "Dentro del live ISO ejecutá:"
+echo
+echo "    bash <(curl -fsSL https://raw.githubusercontent.com/dagorret/Arch-Sway/main/3_instalar_arch_auto.sh)"
+echo
+msg "Listo para continuar con la instalación automática."
