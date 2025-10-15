@@ -22,9 +22,9 @@ Podés ejecutar cada etapa directamente desde el terminal usando `curl | bash`.
 | Etapa | Descripción | Comando |
 |--------|--------------|---------|
 | 🧰 **1. Instalar GNOME Boxes** (host Ubuntu) | Instala `gnome-boxes`, KVM, QEMU, libvirt y dependencias. | ```bash <(curl -fsSL https://raw.githubusercontent.com/dagorret/Arch-Sway/main/1_instalar_gnome_boxes.sh)``` |
-| 💽 **2. Crear la VM Arch Linux** (host Ubuntu) | Descarga ISO, verifica checksum y crea la VM con 4 GB RAM y 20 GB dinámicos. | ```bash <(curl -fsSL https://raw.githubusercontent.com/dagorret/Arch-Sway/main/2_crear_vm_arch.sh)``` |
+| 💽 **2. Crear la VM Arch Linux** (host Ubuntu) | Descarga ISO, verifica checksum y crea la VM con 4 GB RAM y 20 GB dinámicos. | ```bash <(curl -fsSL https://raw.githubusercontent.com/dagorret/Arch-Sway/main/2_crear_vm_arch.sh)```  O.... Crea manualmente |
 | ⚙️ **3. Instalar Arch automáticamente** (dentro del Live ISO) | Crea particiones EFI/Swap/Root, instala Arch y configura idioma/esquema argentino. | ```bash <(curl -fsSL https://raw.githubusercontent.com/dagorret/Arch-Sway/main/3_instalar_arch_auto.sh)``` |
-| 🧩 **4. Configurar Sway y entorno completo** (dentro de Arch instalado) | Instala Sway, Waybar, Wofi, Emacs, MarkText, Pandoc + TeX Live full, temas y utilidades. | ```bash <(curl -fsSL https://raw.githubusercontent.com/dagorret/Arch-Sway/main/4_postinstall_sway.sh)```  Short url: https://h1.nu/arch-sway O.... Crea manualmente|
+| 🧩 **4. Configurar Sway y entorno completo** (dentro de Arch instalado) | Instala Sway, Waybar, Wofi, Emacs, MarkText, Pandoc + TeX Live full, temas y utilidades. | ```bash <(curl -fsSL https://raw.githubusercontent.com/dagorret/Arch-Sway/main/4_postinstall_sway.sh)```  |
 
 ---
 ### Crear VM manualmente
